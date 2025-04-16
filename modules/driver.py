@@ -10,7 +10,7 @@ class ChromeDriverManager:
     @staticmethod
     def get_driver():
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless=new")
+        options.add_argument("--headless=new")
         options.add_argument("--incognito")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--ignore-certificate-errors")
