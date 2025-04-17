@@ -24,6 +24,8 @@ class StoreInfoCollector:
         return match.group(1) if match else None
 
     def extract_land_address(self, address):
+        if not address:
+            return None
         match = re.search(r"(동대문구 [가-힣]+동[\s\d\-]*)", address)
         return match.group(1) if match else None
 
