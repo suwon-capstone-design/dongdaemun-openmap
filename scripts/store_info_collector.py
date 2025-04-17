@@ -18,6 +18,8 @@ class StoreInfoCollector:
         self.driver = ChromeDriverManager.get_driver()
 
     def extract_road_address(self, address):
+        if not address:
+            return None
         match = re.search(r"(동대문구 [^ ]+로[^ ]*)", address)
         return match.group(1) if match else None
 
