@@ -35,7 +35,7 @@ class ReviewAnalyzer:
 
     def analyze_review(self, review_content: str) -> str:
         prompt = f"""
-        출력은 아래 형식을 무조건 엄격히 따라야 합니다.
+        절대 다른 텍스트를 추가하지 말고, 반드시 JSON 오브젝트만 반환해야 합니다!
 
         다음 리뷰를 실제 리뷰 내용을 바탕으로 아래 형식에 꼭 맞춰 작성해 주세요.
 
@@ -54,10 +54,15 @@ class ReviewAnalyzer:
         - 전반 점수: 가성비 점수 50% + 위생 점수 50% 가중 평균  
         - 소수점 둘째 자리까지 표기  
 
-        출력 형식(예시, 이 형식 그대로):
-        가성비 평가 텍스트… - 가성비 점수: 90.25  
-        위생 평가 텍스트…  - 위생 점수: 88.67 
-        전반적인 평가 텍스트…  - 전반 점수: 89.46  
+        JSON 스키마:
+        {{
+          "costPerformanceText": string,   // 3~5문장 이내
+          "hygieneText": string,           // 3~5문장 이내
+          "overallText": string,           // 3~5문장 이내
+          "costPerformanceScore": number,  // 0.00~100.00 소수점 둘째 자리까지
+          "hygieneScore": number,          // 0.00~100.00 소수점 둘째 자리까지
+          "overallScore": number           // 가성비 50% + 위생 50% 가중 평균
+        }}
 
         리뷰 원문:  
         {review_content}
@@ -66,7 +71,7 @@ class ReviewAnalyzer:
         payload = {
             "model": self.model_name,
             "prompt": prompt,
-            "temperature": 0.7,
+            "temperature": 0.0,
             "stream": False,
         }
 
