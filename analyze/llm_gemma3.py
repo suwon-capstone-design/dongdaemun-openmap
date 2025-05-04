@@ -104,7 +104,7 @@ class ReviewAnalyzer:
                 break
 
             for row in batch:
-                review_id, content = row[0], row[2]
+                review_id, content = row["id"], row["review_content"]
                 try:
                     analysis = self.analyze_review(content)
                 except Exception as e:
