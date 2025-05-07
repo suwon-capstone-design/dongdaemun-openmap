@@ -1,11 +1,10 @@
 import time
-import re
-from bs4 import BeautifulSoup as bs
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from modules.driver import ChromeDriverManager
+from modules.extract import ReviewExtractor
 from db.mysql_pool_client import MySQLPoolClient
 
 BASE_SEARCH_URL = "https://m.map.naver.com/search?query={}"
@@ -16,18 +15,7 @@ class StoreInfoCollector:
     def __init__(self):
         self.db = MySQLPoolClient()
         self.driver = ChromeDriverManager.get_driver()
-
-    def extract_road_address(self, address):
-        if not address:
-            return None
-        match = re.search(r"(동대문구 [^ ]+로[^ ]*)", address)
-        return match.group(1) if match else None
-
-    def extract_land_address(self, address):
-        if not address:
-            return None
-        match = re.search(r"(동대문구 [가-힣]+동[\s\d\-]*)", address)
-        return match.group(1) if match else None
+        self.extractor = ReviewExtractor(self.driver)
 
     def get_unmapped_stores(self):
         conn = self.db.get_connection()
@@ -60,33 +48,17 @@ class StoreInfoCollector:
         self.driver.get(BASE_SEARCH_URL.format(name))
         time.sleep(1.5)
 
-        soup = bs(self.driver.page_source, "html.parser")
-        road_match = self.extract_road_address(road)
-        lot_match = self.extract_land_address(lot)
-
-        for item in soup.select("li._list_item_sis14_40"):
-            link = item.select_one("a._a_item_sis14_59")
-            cid_match = re.search(r"/place/(\d+)", link["href"]) if link else None
-            cid = cid_match.group(1) if cid_match else None
-
-            if not cid:
-                continue
-
-            address_btn = item.select_one("button._item_address_sis14_319")
-            address = address_btn.get_text(strip=True).replace("주소보기", "") if address_btn else ""
-
-            if (road_match and road_match in address) or (lot_match and lot_match in address):
-                print(f"[📌 매칭 성공] {name} → CID: {cid}")
-                self.driver.get(BASE_STORE_URL.format(cid))
-                time.sleep(1.5)
-                soup2 = bs(self.driver.page_source, "html.parser")
-                rating_tag = soup2.select_one("span.PXMot.LXIwF")
-                rating = rating_tag.get_text(strip=True).replace("별점", "") if rating_tag else None
-                self.insert_store(public_id, rating, cid)
-                return
-
-        print(f"[❌ 매칭 실패] {name}")
-        self.insert_store(public_id, None, None)
+        cid, address = self.extractor.get_store_info(name, road, lot)
+        
+        if cid:
+            print(f"[📌 매칭 성공] {name} → CID: {cid}")
+            self.driver.get(BASE_STORE_URL.format(cid))
+            time.sleep(1.5)
+            rating = self.extractor.get_store_rating()
+            self.insert_store(public_id, rating, cid)
+        else:
+            print(f"[❌ 매칭 실패] {name}")
+            self.insert_store(public_id, None, None)
 
     def run(self):
         for store in self.get_unmapped_stores():
