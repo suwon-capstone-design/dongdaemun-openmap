@@ -98,6 +98,7 @@
             padding:20px; 
             border-radius:10px; 
             box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom:20px;
         }
         .analysis h2 {
             font-size: 18px;
@@ -180,15 +181,6 @@
             </div>
         </div>
 
-        <div class="review-content">
-            <h2>리뷰 내용</h2>
-            <div class="review-text" id="reviewText">
-                {{ review.review_content }}
-                <div class="fade-bottom" id="fadeBottom"></div>
-            </div>
-            <span class="show-more-btn" id="showMoreBtn">더보기 ▼</span>
-        </div>
-
         {% if analysis %}
         <div class="analysis">
             <h2>리뷰 분석</h2>
@@ -224,6 +216,15 @@
             </div>
         </div>
         {% endif %}
+
+        <div class="review-content">
+            <h2>리뷰 내용</h2>
+            <div class="review-text" id="reviewText">
+                {{ review.review_content }}
+                <div class="fade-bottom" id="fadeBottom"></div>
+            </div>
+            <span class="show-more-btn" id="showMoreBtn">더보기 ▼</span>
+        </div>
 
         <a href="/map" class="back-link">&lt; 지도로 돌아가기</a>
     </div>
