@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ review.store_name }} - 리뷰 상세</title>
+    <link rel="icon" href="https://www.ddm.go.kr/site/www/images/contents/cts269_img.jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans KR',sans-serif; }
+        body { background:#f9f9f9; }
+        .container { max-width:800px; margin:0 auto; padding:20px; }
+        header { 
+            position: relative;
+            text-align:center; 
+            margin-bottom:30px; 
+            padding:20px 0; 
+            background:#FF3D6B; 
+            color:#fff; 
+            border-radius:10px; 
+            box-shadow:0 4px 8px rgba(0,0,0,0.1); 
+        }
+        h1 { font-size:24px; margin-bottom:10px; }
+        .subtitle { font-size:14px; margin-bottom:10px; }
+        .store-info { 
+            background:#fff; 
+            padding:20px; 
+            border-radius:10px; 
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom:20px;
+        }
+        .store-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .store-name {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .store-rating {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FF3D6B;
+        }
+        .store-rating .star {
+            color: #FF3D6B;
+            margin-right: 5px;
+        }
+        .review-content {
+            background:#fff; 
+            padding:20px; 
+            border-radius:10px; 
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom:20px;
+            line-height: 1.6;
+        }
+        .review-date {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .review-text {
+            white-space: pre-line;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow: hidden;
+            position: relative;
+            transition: max-height 0.5s ease;
+        }
+        .review-text.expanded {
+            max-height: 2000px;
+        }
+        .show-more-btn {
+            display: inline-block;
+            color: #FF3D6B;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-bottom: 10px;
+        }
+        .show-more-btn:hover {
+            color: #d62e55;
+        }
+        .fade-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(transparent, white);
+            pointer-events: none;
+        }
+        .analysis {
+            background:#fff; 
+            padding:20px; 
+            border-radius:10px; 
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom:20px;
+        }
+        .analysis h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .analysis-section {
+            margin-bottom: 20px;
+        }
+        .analysis-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #FF3D6B;
+        }
+        .analysis-text {
+            line-height: 1.5;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .score-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .score-item {
+            text-align: center;
+            width: 33%;
+        }
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF3D6B;
+            margin-bottom: 5px;
+        }
+        .score-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #FF3D6B;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .logo {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: auto;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>동대문구 맛집 리뷰</h1>
+            <div class="subtitle">맛집의 상세한 리뷰와 평가를 확인하세요!</div>
+            <img src="https://www.ddm.go.kr/site/www/images/contents/cts269_img.jpg" alt="동대문구 로고" class="logo">
+        </header>
+
+        <div class="store-info">
+            <div class="store-header">
+                <div class="store-name">{{ review.store_name }}</div>
+                <div class="store-rating"><span class="star">★</span>{{ review.avg_rating }}</div>
+            </div>
+            <div>
+                <a href="{{ review.naver_store_url }}" target="_blank" style="color:#1E88E5;text-decoration:none;">네이버 지도에서 보기 &gt;</a>
+            </div>
+        </div>
+
+        {% if analysis %}
+        <div class="analysis">
+            <h2>리뷰 분석</h2>
+
+            <div class="score-container">
+                <div class="score-item">
+                    <div class="score-value">{{ "%.1f"|format(analysis.hygieneScore) }}</div>
+                    <div class="score-label">위생 점수</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">{{ "%.1f"|format(analysis.costPerformanceScore) }}</div>
+                    <div class="score-label">가성비 점수</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">{{ "%.1f"|format(analysis.overallScore) }}</div>
+                    <div class="score-label">전체 평가</div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="analysis-title">위생 평가</div>
+                <div class="analysis-text">{{ analysis.hygieneText }}</div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="analysis-title">가성비 평가</div>
+                <div class="analysis-text">{{ analysis.costPerformanceText }}</div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="analysis-title">전반적인 평가</div>
+                <div class="analysis-text">{{ analysis.overallText }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="review-content">
+            <h2>리뷰 내용</h2>
+            <div class="review-text" id="reviewText">
+                {{ review.review_content }}
+                <div class="fade-bottom" id="fadeBottom"></div>
+            </div>
+            <span class="show-more-btn" id="showMoreBtn">더보기 ▼</span>
+        </div>
+
+        <a href="/map" class="back-link">&lt; 지도로 돌아가기</a>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const reviewText = document.getElementById('reviewText');
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            const fadeBottom = document.getElementById('fadeBottom');
+            
+            if (reviewText.scrollHeight <= 400) {
+                showMoreBtn.style.display = 'none';
+                fadeBottom.style.display = 'none';
+            }
+            
+            showMoreBtn.addEventListener('click', function() {
+                if (reviewText.classList.contains('expanded')) {
+                    reviewText.classList.remove('expanded');
+                    showMoreBtn.textContent = '더보기 ▼';
+                    fadeBottom.style.display = 'block';
+                    window.scrollTo({
+                        top: reviewText.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    reviewText.classList.add('expanded');
+                    showMoreBtn.textContent = '접기 ▲';
+                    fadeBottom.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
