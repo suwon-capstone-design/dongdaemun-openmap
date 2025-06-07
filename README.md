@@ -46,7 +46,7 @@
 ---
 
 ## 🗂️ 데이터 & DB 스키마
-
+ERD - https://www.erdcloud.com/d/AJkfZLLGaHKvkq3ye
 ```sql
 -- 1. 공공데이터 원본 테이블
 CREATE TABLE public_data (
