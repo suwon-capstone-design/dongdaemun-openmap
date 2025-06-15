@@ -29,7 +29,7 @@
         .map-info { background:#fff; padding:15px; margin-top:20px; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
         .map-info h3 { font-size:18px; margin-bottom:10px; color:#333; }
         .map-info p { font-size:14px; line-height:1.6; color:#666; }
-        
+
         /* 동대문구 로고 */
         .ddm-logo {
             position: absolute;
@@ -43,7 +43,7 @@
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        
+
         /* 카카오맵 스타일 정보창 */
         .custom-overlay {
             position: relative;
@@ -85,12 +85,12 @@
         .custom-overlay .rating .star {
             margin-right: 3px;
         }
-        
+
         /* 라벨 스타일 */
-        .label { 
-            padding: 3px 8px; 
-            font-size: 12px; 
-            font-weight: bold; 
+        .label {
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: bold;
             background-color: #FE5C6A;
             color: white;
             border-radius: 3px;
@@ -100,12 +100,12 @@
             white-space: nowrap;
             text-align: center;
         }
-        .clicked { 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4) !important; 
-            z-index: 100 !important; 
+        .clicked {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4) !important;
+            z-index: 100 !important;
             transform: translateY(-3px);
         }
-        
+
         /* 필터 컨트롤 스타일 */
         .filter-controls {
             position: absolute;
@@ -158,7 +158,8 @@
             text-align: center;
         }
     </style>
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services&autoload=false"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services,clusterer&autoload=false"></script>
 </head>
 <body>
     <div class="container">
@@ -166,226 +167,255 @@
             <h1>동대문구 위생 업소 지도</h1>
             <div class="subtitle">동대문구 맛집 정보를 한 눈에 확인하세요!</div>
         </header>
+
         <div class="map-container">
             <div id="map"></div>
+
             <div class="filter-controls">
                 <div class="filter-group">
                     <span class="filter-label">표시 개수:</span>
                     <select id="limit-select">
-                        <option value="500" {% if limit == 500 %}selected{% endif %}>500개</option>
-                        <option value="1000" {% if limit == 1000 %}selected{% endif %}>1000개</option>
-                        <option value="2000" {% if limit == 2000 %}selected{% endif %}>2000개</option>
-                        <option value="3000" {% if limit == 3000 %}selected{% endif %}>3000개</option>
+                        <option value="500" {% if limit==500 %}selected{% endif %}>500개</option>
+                        <option value="1000" {% if limit==1000 %}selected{% endif %}>1000개</option>
+                        <option value="2000" {% if limit==2000 %}selected{% endif %}>2000개</option>
+                        <option value="3000" {% if limit==3000 %}selected{% endif %}>3000개</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <span class="filter-label">최소 평점:</span>
                     <select id="rating-select">
-                        <option value="0" {% if min_rating == 0 %}selected{% endif %}>전체</option>
-                        <option value="4.8" {% if min_rating == 4.8 %}selected{% endif %}>4.8 이상</option>
-                        <option value="4.6" {% if min_rating == 4.6 %}selected{% endif %}>4.6 이상</option>
-                        <option value="4.4" {% if min_rating == 4.4 %}selected{% endif %}>4.4 이상</option>
-                        <option value="4.2" {% if min_rating == 4.2 %}selected{% endif %}>4.2 이상</option>
-                        <option value="4.0" {% if min_rating == 4.0 %}selected{% endif %}>4.0 이상</option>
+                        <option value="0" {% if min_rating==0 %}selected{% endif %}>전체</option>
+                        <option value="4.8" {% if min_rating==4.8 %}selected{% endif %}>4.8↑</option>
+                        <option value="4.6" {% if min_rating==4.6 %}selected{% endif %}>4.6↑</option>
+                        <option value="4.4" {% if min_rating==4.4 %}selected{% endif %}>4.4↑</option>
+                        <option value="4.2" {% if min_rating==4.2 %}selected{% endif %}>4.2↑</option>
+                        <option value="4.0" {% if min_rating==4.0 %}selected{% endif %}>4.0↑</option>
                     </select>
                 </div>
                 <button class="apply-btn" onclick="applyFilters()">적용</button>
+                <!-- 토글 버튼 -->
+                <button id="recommend-btn" class="apply-btn" onclick="toggleRecommend()">
+                    구역 추천
+                </button>
             </div>
+
             <div class="map-legend">
                 <h4>범례</h4>
-                <div style="margin-bottom:8px;font-size:11px;color:#666;">※ 현재 표시: {{ limit }}개 매장{% if min_rating > 0 %}, 평점 {{ min_rating }} 이상{% endif %}</div>
-                <div class="legend-item">
-                    <div class="legend-color legend-area"></div><span>동대문구 경계</span>
+                <div style="font-size:11px; color:#666; margin-bottom:8px;">
+                    ※ 현재: {{ limit }}개{% if min_rating>0 %}, 평점 {{ min_rating }}↑{% endif %}
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-excellent"></div><span>별점 4.8-5.0</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-good"></div><span>별점 4.6-4.8</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-average"></div><span>별점 4.4-4.6</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-ok"></div><span>별점 4.2-4.4</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-fair"></div><span>별점 4.0-4.2</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-mediocre"></div><span>별점 3.8-4.0</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-below"></div><span>별점 3.8 미만</span>
-                </div>
+                <div class="legend-item"><div class="legend-color legend-area"></div><span>동대문구 경계</span></div>
+                <div class="legend-item"><div class="legend-color legend-excellent"></div><span>별점 4.8-5.0</span></div>
+                <div class="legend-item"><div class="legend-color legend-good"></div><span>별점 4.6-4.8</span></div>
+                <div class="legend-item"><div class="legend-color legend-average"></div><span>별점 4.4-4.6</span></div>
+                <div class="legend-item"><div class="legend-color legend-ok"></div><span>별점 4.2-4.4</span></div>
+                <div class="legend-item"><div class="legend-color legend-fair"></div><span>별점 4.0-4.2</span></div>
+                <div class="legend-item"><div class="legend-color legend-mediocre"></div><span>별점 3.8-4.0</span></div>
+                <div class="legend-item"><div class="legend-color legend-below"></div><span>별점 3.8 미만</span></div>
             </div>
-            <img src="https://www.ddm.go.kr/site/www/images/contents/cts269_img.jpg" alt="동대문구 로고" class="ddm-logo">
+
+            <img src="https://www.ddm.go.kr/site/www/images/contents/cts269_img.jpg"
+                 alt="동대문구 로고" class="ddm-logo">
         </div>
     </div>
 
     <script>
-    function applyFilters() {
+      // 서버에서 전달된 stores 데이터
+      const stores = {{ stores|tojson|safe }};
+      let map;
+
+      // 클러스터에 사용할 사용자 정의 마커를 담을 배열
+      const ratingMarkers = [];
+
+      // 두 점 사이 거리 계산 (미터)
+      function computeDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = d => d * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*
+                  Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      function applyFilters() {
         const limit = document.getElementById('limit-select').value;
         const minRating = document.getElementById('rating-select').value;
-        
         window.location.href = `/map?limit=${limit}&min_rating=${minRating}`;
-    }
-    
-    kakao.maps.load(function() {
-        var map = new kakao.maps.Map(document.getElementById('map'), {
-            center: new kakao.maps.LatLng(37.5744, 127.0396),
-            level: 3
+      }
+
+
+      let polygonOverlays = [];
+
+    function toggleRecommend() {
+
+      // 이미 그려진 폴리곤이 있으면 전부 지우고
+      if (polygonOverlays.length > 0) {
+        polygonOverlays.forEach(poly => poly.setMap(null));
+        polygonOverlays = [];
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        alert('위치 정보를 지원하지 않습니다.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(pos => {
+        const uLat = pos.coords.latitude;
+        const uLng = pos.coords.longitude;
+
+        // Turf 포인트 컬렉션 생성
+        const pts = stores.map(s => turf.point([s.longitude, s.latitude], s));
+        const fc  = turf.featureCollection(pts);
+
+        // DBSCAN 클러스터링: 반경 200m, 최소 10개
+        const clustered = turf.clustersDbscan(fc, 200, {
+          units: 'meters',
+          minPoints: 10
         });
 
-        var allGeo = JSON.parse('{{ dongdaemun_geo|tojson|safe }}');
-        var dongFeature = allGeo.features.find(function(f) {
-            return f.properties.SIG_KOR_NM === '동대문구';
-        });
-        if (!dongFeature) {
-            console.error('동대문구 경계 데이터를 찾을 수 없습니다.');
-            return;
-        }
-
-        var geom = dongFeature.geometry;
-        var coordsArray = (geom.type === 'MultiPolygon'
-            ? geom.coordinates[0][0]
-            : geom.coordinates[0]
-        );
-
-        var path = coordsArray.map(function(c) {
-            return new kakao.maps.LatLng(c[1], c[0]);
+        // 클러스터별로 묶기
+        const groups = {};
+        clustered.features.forEach(f => {
+          const cid = f.properties.cluster;
+          if (cid !== undefined) {
+            groups[cid] = groups[cid] || [];
+            groups[cid].push(f);
+          }
         });
 
-        var polygon = new kakao.maps.Polygon({
-            map: map,
-            path: path,
+        // 통계 계산 & 평점순 정렬 후 상위 3개
+        const stats = Object.entries(groups).map(([cid, arr]) => {
+          const count = arr.length;
+          const avg   = arr.reduce((sum, f) => sum + f.properties.avg_rating, 0) / count;
+          return { cid, feats: arr, count, avg };
+        }).sort((a, b) => b.avg - a.avg).slice(0, 10);
+
+        // 패널 & 폴리곤 그리기
+        stats.forEach((cl, i) => {
+          const hull   = turf.convex(turf.featureCollection(cl.feats));
+          const coords = hull.geometry.coordinates[0]
+                            .map(c => new kakao.maps.LatLng(c[1], c[0]));
+          const poly = new kakao.maps.Polygon({
+            map,
+            path: coords,
             strokeWeight: 2,
-            strokeColor: '#FF0000',
+            strokeColor: '#FF4080',
             strokeOpacity: 0.8,
-            fillColor: '#FF0000',
-            fillOpacity: 0.1
+            fillColor: '#FF4080',
+            fillOpacity: 0.2
+          });
+          polygonOverlays.push(poly);
         });
 
-        var bounds = new kakao.maps.LatLngBounds();
-        path.forEach(bounds.extend, bounds);
-        map.setBounds(bounds);
+      }, () => {
+        alert('위치 정보를 가져올 수 없습니다.');
+      });
+    }
 
-        function getMarkerColor(rating) {
-            if (rating >= 4.8) return '#FF0000';
-            if (rating >= 4.6) return '#FF4500';
-            if (rating >= 4.4) return '#FFA500';
-            if (rating >= 4.2) return '#FFCC00';
-            if (rating >= 4.0) return '#FFFF00';
-            if (rating >= 3.8) return '#ADFF2F';
-            return '#A0A0A0';
-        }
-
-        function getMarkerSize(rating) {
-            if (rating >= 4.8) return 28;
-            if (rating >= 4.6) return 24;
-            if (rating >= 4.4) return 20;
-            if (rating >= 4.2) return 16;
-            if (rating >= 4.0) return 12;
-            if (rating >= 3.8) return 10;
-            return 10;    
-        }
-
-        var currentOverlay = null;
-        var clickedMarker = null;
-
-        var stores = JSON.parse('{{ stores|tojson|safe }}');
-        stores.forEach(function(store) {
-            var position = new kakao.maps.LatLng(store.latitude, store.longitude);
-            
-            var markerColor = getMarkerColor(store.avg_rating);
-            var markerSize = getMarkerSize(store.avg_rating);
-            
-            var markerImage = new kakao.maps.MarkerImage(
-                'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg width="' + (markerSize+20) + '" height="' + (markerSize+20) + '" xmlns="http://www.w3.org/2000/svg"><rect width="' + (markerSize+20) + '" height="' + (markerSize+20) + '" fill="transparent"/><circle cx="' + ((markerSize+20)/2) + '" cy="' + ((markerSize+20)/2) + '" r="' + (markerSize/2) + '" stroke="white" stroke-width="2" fill="' + markerColor + '" filter="drop-shadow(0px 2px 3px rgba(0,0,0,0.6))"/></svg>'),
-                new kakao.maps.Size(markerSize+20, markerSize+20),
-                {offset: new kakao.maps.Point((markerSize+20)/2, (markerSize+20)/2)}
-            );
-            
-            var marker = new kakao.maps.Marker({
-                position: position,
-                map: map,
-                image: markerImage,
-                zIndex: Math.floor(store.avg_rating * 20)
-            });
-            
-            var overlay = new kakao.maps.CustomOverlay({
-                content: '<div class="custom-overlay" id="overlay-' + store.nms_id + '">' + 
-                         '<span class="title" style="color:' + markerColor + '">' + 
-                         '<a href="' + store.naver_store_url + '" target="_blank" style="color:' + markerColor + ';text-decoration:none;">' + store.store_name + '</a>' +
-                         '</span>' +
-                         '<span class="rating" style="color:' + markerColor + '"><span class="star">★</span>' + store.avg_rating + '</span>' +
-                         '<div style="text-align:center;padding-bottom:8px;">' +
-                         '<a href="/review/' + store.review_id + '" target="_blank" style="font-size:12px;color:#666;text-decoration:none;">리뷰 보기</a>' +
-                         '</div>' +
-                         '</div>',
-                position: position,
-                yAnchor: 0.5,
-                zIndex: Math.floor(store.avg_rating * 20) + 100
-            });
-            
-            var hoverTimer;
-            
-            kakao.maps.event.addListener(marker, 'mouseover', function() {
-                clearTimeout(hoverTimer);
-                if (clickedMarker !== marker) {
-                    overlay.setMap(map);
-                }
-            });
-            
-            kakao.maps.event.addListener(marker, 'mouseout', function() {
-                if (clickedMarker !== marker) {
-                    hoverTimer = setTimeout(function() {
-                        overlay.setMap(null);
-                    }, 200);
-                }
-            });
-            
-            kakao.maps.event.addListener(overlay, 'mouseover', function() {
-                clearTimeout(hoverTimer);
-            });
-            
-            kakao.maps.event.addListener(overlay, 'mouseout', function() {
-                if (clickedMarker !== marker) {
-                    overlay.setMap(null);
-                }
-            });
-            
-            kakao.maps.event.addListener(marker, 'click', function() {
-                if (currentOverlay && currentOverlay !== overlay) {
-                    currentOverlay.setMap(null);
-                    
-                    var prevElement = document.getElementById(currentOverlay.getContent().match(/id="([^"]+)"/)[1]);
-                    if (prevElement) {
-                        prevElement.classList.remove('clicked');
-                    }
-                }
-                
-                if (clickedMarker === marker) {
-                    clickedMarker = null;
-                    currentOverlay = null;
-                    overlay.setMap(null);
-                    return;
-                }
-                
-                clickedMarker = marker;
-                currentOverlay = overlay;
-                
-                overlay.setMap(map);
-                
-                setTimeout(function() {
-                    var element = document.getElementById('overlay-' + store.nms_id);
-                    if (element) {
-                        element.classList.add('clicked');
-                    }
-                }, 10);
-            });
+      kakao.maps.load(function() {
+        map = new kakao.maps.Map(document.getElementById('map'), {
+          center: new kakao.maps.LatLng(37.5744,127.0396),
+          level: 3
         });
-    });
+
+        // 동대문구 경계
+        const allGeo = JSON.parse('{{ dongdaemun_geo|tojson|safe }}');
+        const dong = allGeo.features.find(f=>f.properties.SIG_KOR_NM==='동대문구');
+        if (dong) {
+          const raw = dong.geometry.type==='MultiPolygon'
+            ? dong.geometry.coordinates[0][0]
+            : dong.geometry.coordinates[0];
+          const path = raw.map(c=>new kakao.maps.LatLng(c[1],c[0]));
+          new kakao.maps.Polygon({
+            map, path,
+            strokeWeight:2, strokeColor:'#FF0000', strokeOpacity:0.8,
+            fillColor:'#FF0000', fillOpacity:0.1
+          });
+          const bounds = new kakao.maps.LatLngBounds();
+          path.forEach(bounds.extend, bounds);
+          map.setBounds(bounds);
+        }
+
+        // 평점·리뷰 마커 생성
+        stores.forEach(store => {
+          const pos = new kakao.maps.LatLng(store.latitude, store.longitude);
+          const color = store.avg_rating>=4.8?'#FF0000'
+                      : store.avg_rating>=4.6?'#FF4500'
+                      : store.avg_rating>=4.4?'#FFA500'
+                      : store.avg_rating>=4.2?'#FFCC00'
+                      : store.avg_rating>=4.0?'#FFFF00'
+                      : store.avg_rating>=3.8?'#ADFF2F'
+                      :'#A0A0A0';
+          const size = store.avg_rating>=4.8?28
+                     : store.avg_rating>=4.6?24
+                     : store.avg_rating>=4.4?20
+                     : store.avg_rating>=4.2?16
+                     : store.avg_rating>=4.0?12
+                     : store.avg_rating>=3.8?10
+                     :10;
+          const svg = `<svg width="${size+20}" height="${size+20}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="${(size+20)/2}" cy="${(size+20)/2}" r="${size/2}"
+                    stroke="white" stroke-width="2" fill="${color}"
+                    filter="drop-shadow(0 2px 3px rgba(0,0,0,0.6))"/>
+          </svg>`;
+          const markerImage = new kakao.maps.MarkerImage(
+            'data:image/svg+xml,'+encodeURIComponent(svg),
+            new kakao.maps.Size(size+20,size+20),
+            { offset:new kakao.maps.Point((size+20)/2,(size+20)/2) }
+          );
+          const marker = new kakao.maps.Marker({ position:pos, image:markerImage, zIndex:Math.floor(store.avg_rating*20) });
+          ratingMarkers.push(marker);
+
+          const overlay = new kakao.maps.CustomOverlay({
+            position:pos, yAnchor:0.5, zIndex:Math.floor(store.avg_rating*20)+100,
+            content: `
+              <div class="custom-overlay" id="overlay-${store.nms_id}">
+                <span class="title" style="color:${color}">
+                  <a href="${store.naver_store_url}" target="_blank"
+                     style="color:${color};text-decoration:none;">
+                    ${store.store_name}
+                  </a>
+                </span>
+                <span class="rating" style="color:${color}">
+                  <span class="star">★</span>${store.avg_rating}
+                </span>
+                <div style="text-align:center;padding-bottom:8px;">
+                  <a href="/review/${store.review_id}" target="_blank"
+                     style="font-size:12px;color:#666;text-decoration:none;">
+                    리뷰 보기
+                  </a>
+                </div>
+              </div>`
+          });
+          let clicked=false, hoverT;
+          kakao.maps.event.addListener(marker,'mouseover',()=>{
+            clearTimeout(hoverT);
+            if(!clicked) overlay.setMap(map);
+          });
+          kakao.maps.event.addListener(marker,'mouseout',()=>{
+            if(!clicked) hoverT=setTimeout(()=>overlay.setMap(null),200);
+          });
+          kakao.maps.event.addListener(overlay,'mouseover',()=>clearTimeout(hoverT));
+          kakao.maps.event.addListener(overlay,'mouseout',()=>{
+            if(!clicked) overlay.setMap(null);
+          });
+          kakao.maps.event.addListener(marker,'click',()=>{
+            if(clicked){ overlay.setMap(null); clicked=false; }
+            else      { overlay.setMap(map); clicked=true;  }
+          });
+        });
+
+        const clusterer = new kakao.maps.MarkerClusterer({
+          map: map,
+          averageCenter: true,
+          gridSize: 80,
+          minLevel: 5
+        });
+        clusterer.addMarkers(ratingMarkers);
+      });
     </script>
 </body>
 </html>

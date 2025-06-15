@@ -3,14 +3,15 @@ import time
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderServiceError, GeocoderTimedOut
 
+
 class AddressGeocoder:
     """
     geopy의 Nominatim을 사용해, 주어진 주소 문자열에서
     위도(latitude)와 경도(longitude)를 반환합니다.
     빌딩 몇 층, 호실 정보가 포함되어도 기본 주소만 추출해 처리합니다.
     """
+
     def __init__(self, user_agent: str = "my_geocoder"):
-        # Nominatim은 반드시 user_agentを指定する必要があります
         self.geolocator = Nominatim(user_agent=user_agent, timeout=10)
 
     def _normalize_address(self, raw_addr: str) -> str:

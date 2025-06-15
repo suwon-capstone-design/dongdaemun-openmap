@@ -1,9 +1,11 @@
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from db.mysql_pool_client import MySQLPoolClient
-from address_geocoder import AddressGeocoder
+from modules.address_geocoder import AddressGeocoder
+
 
 class LocationUpdater:
     def __init__(self):
@@ -49,9 +51,9 @@ class LocationUpdater:
         if not batch:
             print("처리할 레코드가 없습니다.")
         for row in batch:
-            store_id  = row["naver_map_store_id"]
+            store_id = row["naver_map_store_id"]
             road_addr = (row.get("road_address") or "").strip()
-            lot_addr  = (row.get("lot_address") or "").strip()
+            lot_addr = (row.get("lot_address") or "").strip()
 
             if road_addr:
                 address = road_addr
@@ -71,6 +73,7 @@ class LocationUpdater:
                 self.save_location(store_id, 0.0, 0.0)
 
         self.db.close()
+
 
 if __name__ == "__main__":
     updater = LocationUpdater()
