@@ -249,8 +249,6 @@
       let polygonOverlays = [];
 
     function toggleRecommend() {
-
-      // 이미 그려진 폴리곤이 있으면 전부 지우고
       if (polygonOverlays.length > 0) {
         polygonOverlays.forEach(poly => poly.setMap(null));
         polygonOverlays = [];
@@ -263,20 +261,23 @@
       }
 
       navigator.geolocation.getCurrentPosition(pos => {
-        const uLat = pos.coords.latitude;
-        const uLng = pos.coords.longitude;
 
         // Turf 포인트 컬렉션 생성
         const pts = stores.map(s => turf.point([s.longitude, s.latitude], s));
         const fc  = turf.featureCollection(pts);
 
-        // DBSCAN 클러스터링: 반경 200m, 최소 10개
-        const clustered = turf.clustersDbscan(fc, 200, {
+        const total     = stores.length;
+        const eps       = total > 2000 ? 100   // 3000점 이상이면 100m
+                        : total > 1000 ? 150   // 1000~2000점 사이면 150m
+                        : 200;                 // 그 외엔 200m
+        const minPoints = total > 2000 ? 15    // 3000점 이상이면 최소 15개
+                        : 10;                  // 그 외엔 10개
+
+        const clustered = turf.clustersDbscan(fc, eps, {
           units: 'meters',
-          minPoints: 10
+          minPoints
         });
 
-        // 클러스터별로 묶기
         const groups = {};
         clustered.features.forEach(f => {
           const cid = f.properties.cluster;
@@ -286,21 +287,27 @@
           }
         });
 
-        // 통계 계산 & 평점순 정렬 후 상위 3개
         const stats = Object.entries(groups).map(([cid, arr]) => {
-          const count = arr.length;
-          const avg   = arr.reduce((sum, f) => sum + f.properties.avg_rating, 0) / count;
-          return { cid, feats: arr, count, avg };
-        }).sort((a, b) => b.avg - a.avg).slice(0, 10);
+          const sorted  = arr.sort((a, b) => b.properties.avg_rating - a.properties.avg_rating);
+          const limited = sorted.slice(0, 25);
+          const count   = limited.length;
+          const avg     = limited.reduce((sum, f) => sum + f.properties.avg_rating, 0) / count;
+          return { cid, feats: limited, count, avg };
+        })
+        .sort((a, b) => b.avg - a.avg)
+        .slice(0, 20);
 
-        // 패널 & 폴리곤 그리기
-        stats.forEach((cl, i) => {
-          const hull   = turf.convex(turf.featureCollection(cl.feats));
-          const coords = hull.geometry.coordinates[0]
-                            .map(c => new kakao.maps.LatLng(c[1], c[0]));
+        stats.forEach(cl => {
+          // 볼록 껍질 계산
+          const hull = turf.convex(turf.featureCollection(cl.feats));
+          if (!hull || !hull.geometry) return;
+
+          const path = hull.geometry.coordinates[0]
+            .map(c => new kakao.maps.LatLng(c[1], c[0]));
+
           const poly = new kakao.maps.Polygon({
             map,
-            path: coords,
+            path,
             strokeWeight: 2,
             strokeColor: '#FF4080',
             strokeOpacity: 0.8,
@@ -310,10 +317,12 @@
           polygonOverlays.push(poly);
         });
 
-      }, () => {
-        alert('위치 정보를 가져올 수 없습니다.');
+      }, err => {
+        console.error('Geolocation error', err);
+        alert(`위치 정보를 가져올 수 없습니다:\n${err.message} (code ${err.code})`);
       });
     }
+
 
       kakao.maps.load(function() {
         map = new kakao.maps.Map(document.getElementById('map'), {
